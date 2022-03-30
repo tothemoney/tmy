@@ -562,9 +562,25 @@ func (c *Clique) Prepare(chain consensus.ChainHeaderReader, header *types.Header
 // Finalize implements consensus.Engine, ensuring no uncles are set, nor block
 // rewards given.
 func (c *Clique) Finalize(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header) {
+	number := header.Number.Uint64()
+	snap, _ := c.snapshot(chain, number-1, header.ParentHash, nil)
+	lenOfSigners := len(snap.Signers)
+	accumulateRewards(chain.Config(), state, header, uncles, c.config.Period, lenOfSigners)
+
 	// No block rewards in PoA, so the state remains as is and uncles are dropped
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
 	header.UncleHash = types.CalcUncleHash(nil)
+}
+
+// AccumulateRewards credits the coinbase of the given block with the mining
+// reward. The total reward consists of the static block reward and rewards for
+// included uncles. The coinbase of each uncle block is also rewarded.
+func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header *types.Header, uncles []*types.Header, period uint64, lenOfSigners int) {
+	reward, _ := getBlockReward(uint(period))
+	lenOfSignersBigInt := big.NewInt(int64(lenOfSigners))
+
+	log.Info("Added reward", "reward", reward, "Coinbase", header.RewardAddress, "Signers' amount", lenOfSigners)
+	state.AddBalance(header.RewardAddress, reward.Div(reward, lenOfSignersBigInt))
 }
 
 // FinalizeAndAssemble implements consensus.Engine, ensuring no uncles are set,

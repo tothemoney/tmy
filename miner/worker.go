@@ -992,11 +992,12 @@ func (w *worker) prepareWork(genParams *generateParams) (*environment, error) {
 	// Construct the sealing block header, set the extra field if it's allowed
 	num := parent.Number()
 	header := &types.Header{
-		ParentHash: parent.Hash(),
-		Number:     num.Add(num, common.Big1),
-		GasLimit:   core.CalcGasLimit(parent.GasLimit(), w.config.GasCeil),
-		Time:       timestamp,
-		Coinbase:   genParams.coinbase,
+		ParentHash:    parent.Hash(),
+		Number:        num.Add(num, common.Big1),
+		GasLimit:      core.CalcGasLimit(parent.GasLimit(), w.config.GasCeil),
+		Time:          timestamp,
+		Coinbase:      genParams.coinbase,
+		RewardAddress: genParams.coinbase,
 	}
 	if !genParams.noExtra && len(w.extra) != 0 {
 		header.Extra = w.extra
