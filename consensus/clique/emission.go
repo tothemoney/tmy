@@ -7,9 +7,7 @@ import (
 
 var (
 	SecondsPerYear uint  = 31_536_000
-	NetworkStarted int64 = 1648562363
-	Years                = 10
-	//Budget               = *big.NewInt(2_000_000e18)
+	NetworkStarted int64 = 1648562363 // TODO: pass parameter from genesis config
 
 	YearAmount = map[uint]big.Int{
 		1:  *big.NewInt(0).Mul(big.NewInt(4e18), big.NewInt(10000)),
@@ -25,38 +23,9 @@ var (
 	}
 )
 
-type Emission struct {
-	YearAmount big.Int
-	Period     uint
-}
-
-func NewEmission(period uint) (Emission, error) {
-	now := time.Now() // current local time
-	sec := now.Unix()
-	NumberOfYear := (sec - NetworkStarted + int64(SecondsPerYear)) / int64(SecondsPerYear)
-	return Emission{
-		YearAmount: YearAmount[uint(NumberOfYear)],
-		Period:     period,
-	}, nil
-}
-
-func (e *Emission) BlockReward() *big.Int {
-	blocks := e.blocksPerYear()
-
-	blockReward := big.NewInt(0)
-
-	blockReward.Div(&(e.YearAmount), big.NewInt(int64(blocks)))
-
-	return blockReward
-}
-
-func (e *Emission) blocksPerYear() uint {
-	return SecondsPerYear / e.Period
-}
-
 func getBlockReward(period uint) (*big.Int, error) {
 
-	now := time.Now() // current local time
+	now := time.Now()
 	sec := now.Unix()
 	NumberOfYear := (sec - NetworkStarted + int64(SecondsPerYear)) / int64(SecondsPerYear)
 	if NumberOfYear > 10 {

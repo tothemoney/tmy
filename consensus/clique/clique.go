@@ -563,24 +563,28 @@ func (c *Clique) Prepare(chain consensus.ChainHeaderReader, header *types.Header
 // rewards given.
 func (c *Clique) Finalize(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header) {
 	number := header.Number.Uint64()
-	snap, _ := c.snapshot(chain, number-1, header.ParentHash, nil)
-	lenOfSigners := len(snap.Signers)
-	accumulateRewards(chain.Config(), state, header, uncles, c.config.Period, lenOfSigners)
+	if number != 1 {
+		log.Info("Block Info", "block number", number)
+		snap, _ := c.snapshot(chain, number-1, header.ParentHash, nil)
+		lenOfSigners := len(snap.Signers)
+		signerAddress, _ := c.Author(header)
+		if signerAddress == (common.Address{}) {
+			signerAddress = c.signer
+		}
+		accumulateRewards(state, header, signerAddress, c.config.Period, lenOfSigners)
+	}
 
-	// No block rewards in PoA, so the state remains as is and uncles are dropped
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
 	header.UncleHash = types.CalcUncleHash(nil)
 }
 
-// AccumulateRewards credits the coinbase of the given block with the mining
-// reward. The total reward consists of the static block reward and rewards for
-// included uncles. The coinbase of each uncle block is also rewarded.
-func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header *types.Header, uncles []*types.Header, period uint64, lenOfSigners int) {
+func accumulateRewards(state *state.StateDB, header *types.Header, rewardAddress common.Address, period uint64, lenOfSigners int) {
 	reward, _ := getBlockReward(uint(period))
 	lenOfSignersBigInt := big.NewInt(int64(lenOfSigners))
 
-	log.Info("Added reward", "reward", reward, "Coinbase", header.RewardAddress, "Signers' amount", lenOfSigners)
-	state.AddBalance(header.RewardAddress, reward.Div(reward, lenOfSignersBigInt))
+	log.Info("Added reward", "reward", reward, "Signer", rewardAddress, "Signers' amount", lenOfSigners)
+	log.Info("Block Info", "Extra data", header.Extra)
+	state.AddBalance(rewardAddress, reward.Div(reward, lenOfSignersBigInt))
 }
 
 // FinalizeAndAssemble implements consensus.Engine, ensuring no uncles are set,
