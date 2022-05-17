@@ -18,7 +18,7 @@ The tmy blockchain allows you to create smart contracts on its basis, representi
 
 ### Emission
 
-The tmy blockchain differs from conventional PoA solutions in that it has a block reward. The emission of the system is set as 2 million coins and is calculated for 10 years:
+The tmy blockchain differs from conventional PoA solutions in that it has a block reward. The reward emission of the system is set as 2 million coins and is calculated for 10 years:
 - 1 year 40 000 tmy
 - 2 year - 80 000 tmy
 - 3 year - 120 000 tmy
@@ -29,6 +29,8 @@ The tmy blockchain differs from conventional PoA solutions in that it has a bloc
 - 8 year - 300,000 tmy
 - 9 year - 300 000 tmy
 - 10 year - 300,000 tmy
+
+Total emission of the system is 12,000,000 TMY.
 
 ### Compatibility
 
