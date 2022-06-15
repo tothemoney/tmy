@@ -30,7 +30,7 @@ Since the blockchain is closed to arbitrary nodes, the `static-nodes.json` must 
 The corresponding file must be in the `<data_dir>/geth/` folder before the node is launched.   
 *In case of the `static-nodes.json` usage the `--bootnode` is not needed.*
 
-#### Starting up your signer node
+#### Starting up your own signer node
 If the points above are successfully made, the signer node is ready to be started:
 ```shell
 geth --networkid 8768 \
@@ -48,3 +48,14 @@ Then account's password must be entered on prompt.
 *Pay attention on to Firewall settings. Port `30303` must be exposed.*
 
 Also, before signing started, the account must be approved by other signers.
+
+#### Starting up your own signer node in docker
+Save your password to a text-file.
+As soon as your data_dir is set up, it's possible to run a signer node as docker container:
+```bash
+DATADIR=... # absolute path to your data_dir
+SIGNER_ACCOUNT=... # signer address
+PASSFILE=... # absolute path to your password file
+
+docker run -v $DATADIR:/root/data -v $PASSFILE:/root/pass -e MINER_ADDRESS=$SIGNER_ACCOUNT -e P2P_PORT=30303 -d ssi91/signer_node:0.1
+```
