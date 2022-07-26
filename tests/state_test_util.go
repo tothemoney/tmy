@@ -220,7 +220,8 @@ func (t *StateTest) RunNoVerify(subtest StateSubtest, vmconfig vm.Config, snapsh
 	context := core.NewEVMBlockContext(block.Header(), nil, &t.json.Env.Coinbase)
 	context.GetHash = vmTestBlockHash
 	context.BaseFee = baseFee
-	if t.json.Env.Random != nil {
+	context.Random = nil
+	if config.IsLondon(new(big.Int)) && t.json.Env.Random != nil {
 		rnd := common.BigToHash(t.json.Env.Random)
 		context.Random = &rnd
 		context.Difficulty = big.NewInt(0)
@@ -233,15 +234,14 @@ func (t *StateTest) RunNoVerify(subtest StateSubtest, vmconfig vm.Config, snapsh
 	if _, err := core.ApplyMessage(evm, msg, gaspool); err != nil {
 		statedb.RevertToSnapshot(snapshot)
 	}
-
-	// Commit block
-	statedb.Commit(config.IsEIP158(block.Number()))
 	// Add 0-value mining reward. This only makes a difference in the cases
 	// where
 	// - the coinbase suicided, or
 	// - there are only 'bad' transactions, which aren't executed. In those cases,
 	//   the coinbase gets no txfee, so isn't created, and thus needs to be touched
 	statedb.AddBalance(block.Coinbase(), new(big.Int))
+	// Commit block
+	statedb.Commit(config.IsEIP158(block.Number()))
 	// And _now_ get the state root
 	root := statedb.IntermediateRoot(config.IsEIP158(block.Number()))
 	return snaps, statedb, root, nil

@@ -18,7 +18,6 @@ package node
 
 import (
 	"bytes"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -54,7 +53,7 @@ func TestDatadirCreation(t *testing.T) {
 		t.Fatalf("freshly created datadir not accessible: %v", err)
 	}
 	// Verify that an impossible datadir fails creation
-	file, err := ioutil.TempFile("", "")
+	file, err := os.CreateTemp("", "")
 	if err != nil {
 		t.Fatalf("failed to create temporary file: %v", err)
 	}
@@ -64,12 +63,9 @@ func TestDatadirCreation(t *testing.T) {
 	}()
 
 	dir = filepath.Join(file.Name(), "invalid/path")
-	node, err = New(&Config{DataDir: dir})
+	_, err = New(&Config{DataDir: dir})
 	if err == nil {
 		t.Fatalf("protocol stack created with an invalid datadir")
-		if err := node.Close(); err != nil {
-			t.Fatalf("failed to close node: %v", err)
-		}
 	}
 }
 
@@ -132,7 +128,7 @@ func TestNodeKeyPersistency(t *testing.T) {
 	if _, err = crypto.LoadECDSA(keyfile); err != nil {
 		t.Fatalf("failed to load freshly persisted node key: %v", err)
 	}
-	blob1, err := ioutil.ReadFile(keyfile)
+	blob1, err := os.ReadFile(keyfile)
 	if err != nil {
 		t.Fatalf("failed to read freshly persisted node key: %v", err)
 	}
@@ -140,7 +136,7 @@ func TestNodeKeyPersistency(t *testing.T) {
 	// Configure a new node and ensure the previously persisted key is loaded
 	config = &Config{Name: "unit-test", DataDir: dir}
 	config.NodeKey()
-	blob2, err := ioutil.ReadFile(filepath.Join(keyfile))
+	blob2, err := os.ReadFile(filepath.Join(keyfile))
 	if err != nil {
 		t.Fatalf("failed to read previously persisted node key: %v", err)
 	}

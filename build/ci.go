@@ -46,7 +46,6 @@ import (
 	"encoding/base64"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -133,12 +132,12 @@ var (
 	// Note: the following Ubuntu releases have been officially deprecated on Launchpad:
 	//   wily, yakkety, zesty, artful, cosmic, disco, eoan, groovy, hirsuite
 	debDistroGoBoots = map[string]string{
-		"trusty":  "golang-1.11", // EOL: 04/2024
-		"xenial":  "golang-go",   // EOL: 04/2026
-		"bionic":  "golang-go",   // EOL: 04/2028
-		"focal":   "golang-go",   // EOL: 04/2030
-		"impish":  "golang-go",   // EOL: 07/2022
-		"jammy":   "golang-go",   // EOL: 04/2032
+		"trusty": "golang-1.11", // EOL: 04/2024
+		"xenial": "golang-go",   // EOL: 04/2026
+		"bionic": "golang-go",   // EOL: 04/2028
+		"focal":  "golang-go",   // EOL: 04/2030
+		"impish": "golang-go",   // EOL: 07/2022
+		"jammy":  "golang-go",   // EOL: 04/2032
 		//"kinetic": "golang-go",   //  EOL: 07/2023
 	}
 
@@ -150,7 +149,7 @@ var (
 	// This is the version of go that will be downloaded by
 	//
 	//     go run ci.go install -dlgo
-	dlgoVersion = "1.18.1"
+	dlgoVersion = "1.18.4"
 )
 
 var GOBIN, _ = filepath.Abs(filepath.Join("build", "bin"))
@@ -224,6 +223,9 @@ func doInstall(cmdline []string) {
 	if env.CI && runtime.GOARCH == "arm64" {
 		gobuild.Args = append(gobuild.Args, "-p", "1")
 	}
+
+	// Disable CLI markdown doc generation in release builds.
+	gobuild.Args = append(gobuild.Args, "-tags", "urfave_cli_no_docs")
 
 	// We use -trimpath to avoid leaking local paths into the built executables.
 	gobuild.Args = append(gobuild.Args, "-trimpath")
@@ -334,7 +336,7 @@ func doLint(cmdline []string) {
 
 // downloadLinter downloads and unpacks golangci-lint.
 func downloadLinter(cachedir string) string {
-	const version = "1.45.2"
+	const version = "1.46.2"
 
 	csdb := build.MustLoadChecksums("build/checksums.txt")
 	arch := runtime.GOARCH
@@ -736,7 +738,7 @@ func ppaUpload(workdir, ppa, sshUser string, files []string) {
 	if sshkey := getenvBase64("PPA_SSH_KEY"); len(sshkey) > 0 {
 		idfile = filepath.Join(workdir, "sshkey")
 		if !common.FileExist(idfile) {
-			ioutil.WriteFile(idfile, sshkey, 0600)
+			os.WriteFile(idfile, sshkey, 0600)
 		}
 	}
 	// Upload
@@ -759,7 +761,7 @@ func makeWorkdir(wdflag string) string {
 	if wdflag != "" {
 		err = os.MkdirAll(wdflag, 0744)
 	} else {
-		wdflag, err = ioutil.TempDir("", "geth-build-")
+		wdflag, err = os.MkdirTemp("", "geth-build-")
 	}
 	if err != nil {
 		log.Fatal(err)

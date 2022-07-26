@@ -35,9 +35,7 @@ func Register(stack *node.Node, backend *les.LightEthereum) error {
 	stack.RegisterAPIs([]rpc.API{
 		{
 			Namespace:     "engine",
-			Version:       "1.0",
 			Service:       NewConsensusAPI(backend),
-			Public:        true,
 			Authenticated: true,
 		},
 	})
@@ -52,7 +50,7 @@ type ConsensusAPI struct {
 // The underlying blockchain needs to have a valid terminal total difficulty set.
 func NewConsensusAPI(les *les.LightEthereum) *ConsensusAPI {
 	if les.BlockChain().Config().TerminalTotalDifficulty == nil {
-		panic("Catalyst started without valid total difficulty")
+		log.Warn("Catalyst started without valid total difficulty")
 	}
 	return &ConsensusAPI{les: les}
 }
@@ -98,7 +96,7 @@ func (api *ConsensusAPI) ForkchoiceUpdatedV1(heads beacon.ForkchoiceStateV1, pay
 
 // GetPayloadV1 returns a cached payload by id. It's not supported in les mode.
 func (api *ConsensusAPI) GetPayloadV1(payloadID beacon.PayloadID) (*beacon.ExecutableDataV1, error) {
-	return nil, &beacon.GenericServerError
+	return nil, beacon.GenericServerError.With(errors.New("not supported in light client mode"))
 }
 
 // ExecutePayloadV1 creates an Eth1 block, inserts it in the chain, and returns the status of the chain.
@@ -157,11 +155,11 @@ func (api *ConsensusAPI) checkTerminalTotalDifficulty(head common.Hash) error {
 	// make sure the parent has enough terminal total difficulty
 	header := api.les.BlockChain().GetHeaderByHash(head)
 	if header == nil {
-		return &beacon.GenericServerError
+		return errors.New("unknown header")
 	}
 	td := api.les.BlockChain().GetTd(header.Hash(), header.Number.Uint64())
 	if td != nil && td.Cmp(api.les.BlockChain().Config().TerminalTotalDifficulty) < 0 {
-		return &beacon.InvalidTB
+		return errors.New("invalid ttd")
 	}
 	return nil
 }
@@ -176,7 +174,7 @@ func (api *ConsensusAPI) setCanonical(newHead common.Hash) error {
 	}
 	newHeadHeader := api.les.BlockChain().GetHeaderByHash(newHead)
 	if newHeadHeader == nil {
-		return &beacon.GenericServerError
+		return errors.New("unknown header")
 	}
 	if err := api.les.BlockChain().SetCanonical(newHeadHeader); err != nil {
 		return err

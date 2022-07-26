@@ -1,4 +1,4 @@
-// Copyright 2019 The go-ethereum Authors
+// Copyright 2016 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
@@ -30,7 +30,7 @@ type hasher struct {
 	sha      crypto.KeccakState
 	tmp      []byte
 	encbuf   rlp.EncoderBuffer
-	parallel bool // Whether to use paralallel threads when hashing
+	parallel bool // Whether to use parallel threads when hashing
 }
 
 // hasherPool holds pureHashers

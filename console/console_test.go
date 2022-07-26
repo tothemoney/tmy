@@ -234,19 +234,6 @@ func TestPreload(t *testing.T) {
 	}
 }
 
-// Tests that JavaScript scripts can be executes from the configured asset path.
-func TestExecute(t *testing.T) {
-	tester := newTester(t, nil)
-	defer tester.Close(t)
-
-	tester.console.Execute("exec.js")
-
-	tester.console.Evaluate("execed")
-	if output := tester.output.String(); !strings.Contains(output, "some-executed-string") {
-		t.Fatalf("execed variable missing: have %s, want %s", output, "some-executed-string")
-	}
-}
-
 // Tests that the JavaScript objects returned by statement executions are properly
 // pretty printed instead of just displaying "[object]".
 func TestPrettyPrint(t *testing.T) {
@@ -285,7 +272,7 @@ func TestPrettyError(t *testing.T) {
 	defer tester.Close(t)
 	tester.console.Evaluate("throw 'hello'")
 
-	want := jsre.ErrorColor("hello") + "\n\tat <eval>:1:7(1)\n\n"
+	want := jsre.ErrorColor("hello") + "\n\tat <eval>:1:1(1)\n\n"
 	if output := tester.output.String(); output != want {
 		t.Fatalf("pretty error mismatch: have %s, want %s", output, want)
 	}

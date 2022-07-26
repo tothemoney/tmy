@@ -21,10 +21,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
@@ -112,7 +112,7 @@ func (c *Client) SubscribeNetwork(events chan *Event, opts SubscribeOpts) (event
 		return nil, err
 	}
 	if res.StatusCode != http.StatusOK {
-		response, _ := ioutil.ReadAll(res.Body)
+		response, _ := io.ReadAll(res.Body)
 		res.Body.Close()
 		return nil, fmt.Errorf("unexpected HTTP status: %s: %s", res.Status, response)
 	}
@@ -252,7 +252,7 @@ func (c *Client) Send(method, path string, in, out interface{}) error {
 	}
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK && res.StatusCode != http.StatusCreated {
-		response, _ := ioutil.ReadAll(res.Body)
+		response, _ := io.ReadAll(res.Body)
 		return fmt.Errorf("unexpected HTTP status: %s: %s", res.Status, response)
 	}
 	if out != nil {
@@ -367,7 +367,6 @@ func (s *Server) StopMocker(w http.ResponseWriter, req *http.Request) {
 
 // GetMockerList returns a list of available mockers
 func (s *Server) GetMockers(w http.ResponseWriter, req *http.Request) {
-
 	list := GetMockerList()
 	s.JSON(w, http.StatusOK, list)
 }
@@ -442,6 +441,7 @@ func (s *Server) StreamNetworkEvents(w http.ResponseWriter, req *http.Request) {
 			}
 		}
 		for _, conn := range snap.Conns {
+			conn := conn
 			event := NewEvent(&conn)
 			if err := writeEvent(event); err != nil {
 				writeErr(err)
@@ -560,7 +560,7 @@ func (s *Server) CreateNode(w http.ResponseWriter, req *http.Request) {
 	config := &adapters.NodeConfig{}
 
 	err := json.NewDecoder(req.Body).Decode(config)
-	if err != nil && err != io.EOF {
+	if err != nil && !errors.Is(err, io.EOF) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}

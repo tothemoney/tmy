@@ -115,7 +115,6 @@ func (mc *mockPendingCaller) PendingCallContract(ctx context.Context, call ether
 }
 
 func TestPassingBlockNumber(t *testing.T) {
-
 	mc := &mockPendingCaller{
 		mockCaller: &mockCaller{
 			codeAtBytes: []byte{1, 2, 3},
@@ -487,4 +486,12 @@ func TestCall(t *testing.T) {
 			t.Fatalf("%q unexpected error: %v", test.name, err)
 		}
 	}
+}
+
+// TestCrashers contains some strings which previously caused the abi codec to crash.
+func TestCrashers(t *testing.T) {
+	abi.JSON(strings.NewReader(`[{"inputs":[{"type":"tuple[]","components":[{"type":"bool","name":"_1"}]}]}]`))
+	abi.JSON(strings.NewReader(`[{"inputs":[{"type":"tuple[]","components":[{"type":"bool","name":"&"}]}]}]`))
+	abi.JSON(strings.NewReader(`[{"inputs":[{"type":"tuple[]","components":[{"type":"bool","name":"----"}]}]}]`))
+	abi.JSON(strings.NewReader(`[{"inputs":[{"type":"tuple[]","components":[{"type":"bool","name":"foo.Bar"}]}]}]`))
 }

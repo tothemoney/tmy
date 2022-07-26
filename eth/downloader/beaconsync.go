@@ -1,4 +1,4 @@
-// Copyright 2021 The go-ethereum Authors
+// Copyright 2022 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
@@ -135,6 +135,13 @@ func (b *beaconBackfiller) setMode(mode SyncMode) {
 	log.Error("Downloader sync mode changed mid-run", "old", mode.String(), "new", mode.String())
 	b.suspend()
 	b.resume()
+}
+
+// SetBadBlockCallback sets the callback to run when a bad block is hit by the
+// block processor. This method is not thread safe and should be set only once
+// on startup before system events are fired.
+func (d *Downloader) SetBadBlockCallback(onBadBlock badBlockFn) {
+	d.badBlock = onBadBlock
 }
 
 // BeaconSync is the post-merge version of the chain synchronization, where the

@@ -1,4 +1,4 @@
-// Copyright 2020 The go-ethereum Authors
+// Copyright 2019 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
@@ -160,7 +160,6 @@ func testTrustedAnnouncement(t *testing.T, protocol int) {
 		nodes     []*enode.Node
 		ids       []string
 		cpeers    []*clientPeer
-		speers    []*serverPeer
 
 		config       = light.TestServerIndexerConfig
 		waitIndexers = func(cIndexer, bIndexer, btIndexer *core.ChainIndexer) {
@@ -213,12 +212,11 @@ func testTrustedAnnouncement(t *testing.T, protocol int) {
 
 	// Connect all server instances.
 	for i := 0; i < len(servers); i++ {
-		sp, cp, err := connect(servers[i].handler, nodes[i].ID(), c.handler, protocol, true)
+		_, cp, err := connect(servers[i].handler, nodes[i].ID(), c.handler, protocol, true)
 		if err != nil {
 			t.Fatalf("connect server and client failed, err %s", err)
 		}
 		cpeers = append(cpeers, cp)
-		speers = append(speers, sp)
 	}
 	newHead := make(chan *types.Header, 1)
 	c.handler.fetcher.newHeadHook = func(header *types.Header) { newHead <- header }
