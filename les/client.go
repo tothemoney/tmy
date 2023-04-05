@@ -32,7 +32,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/eth/ethconfig"
-	"github.com/ethereum/go-ethereum/eth/filters"
 	"github.com/ethereum/go-ethereum/eth/gasprice"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/internal/ethapi"
@@ -49,6 +48,7 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/ethereum/go-ethereum/trie"
 )
 
 type LightEthereum struct {
@@ -93,13 +93,17 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 	if err != nil {
 		return nil, err
 	}
-	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlockWithOverride(chainDb, config.Genesis, config.OverrideGrayGlacier, config.OverrideTerminalTotalDifficulty)
+	var overrides core.ChainOverrides
+	if config.OverrideShanghai != nil {
+		overrides.OverrideShanghai = config.OverrideShanghai
+	}
+	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlockWithOverride(chainDb, trie.NewDatabase(chainDb), config.Genesis, &overrides)
 	if _, isCompat := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !isCompat {
 		return nil, genesisErr
 	}
 	log.Info("")
 	log.Info(strings.Repeat("-", 153))
-	for _, line := range strings.Split(chainConfig.String(), "\n") {
+	for _, line := range strings.Split(chainConfig.Description(), "\n") {
 		log.Info(line)
 	}
 	log.Info(strings.Repeat("-", 153))
@@ -122,7 +126,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 		reqDist:         newRequestDistributor(peers, &mclock.System{}),
 		accountManager:  stack.AccountManager(),
 		merger:          merger,
-		engine:          ethconfig.CreateConsensusEngine(stack, chainConfig, &config.Ethash, nil, false, chainDb),
+		engine:          ethconfig.CreateConsensusEngine(stack, &config.Ethash, chainConfig.Clique, nil, false, chainDb),
 		bloomRequests:   make(chan chan *bloombits.Retrieval),
 		bloomIndexer:    core.NewBloomIndexer(chainDb, params.BloomBitsBlocksClient, params.HelperTrieConfirmations),
 		p2pServer:       stack.Server(),
@@ -172,7 +176,11 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 	// Rewind the chain in case of an incompatible config upgrade.
 	if compat, ok := genesisErr.(*params.ConfigCompatError); ok {
 		log.Warn("Rewinding chain to upgrade configuration", "err", compat)
-		leth.blockchain.SetHead(compat.RewindTo)
+		if compat.RewindToTime > 0 {
+			leth.blockchain.SetHeadWithTimestamp(compat.RewindToTime)
+		} else {
+			leth.blockchain.SetHead(compat.RewindToBlock)
+		}
 		rawdb.WriteChainConfig(chainDb, genesisHash, chainConfig)
 	}
 
@@ -298,9 +306,6 @@ func (s *LightEthereum) APIs() []rpc.API {
 		}, {
 			Namespace: "eth",
 			Service:   downloader.NewDownloaderAPI(s.handler.downloader, s.eventMux),
-		}, {
-			Namespace: "eth",
-			Service:   filters.NewFilterAPI(s.ApiBackend, true, 5*time.Minute),
 		}, {
 			Namespace: "net",
 			Service:   s.netRPCService,

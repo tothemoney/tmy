@@ -48,9 +48,6 @@ func TestDefaults(t *testing.T) {
 		t.Error("expected difficulty to be non nil")
 	}
 
-	if cfg.Time == nil {
-		t.Error("expected time to be non nil")
-	}
 	if cfg.GasLimit == 0 {
 		t.Error("didn't expect gaslimit to be zero")
 	}
@@ -174,7 +171,7 @@ func benchmarkEVM_Create(bench *testing.B, code string) {
 		State:       statedb,
 		GasLimit:    10000000,
 		Difficulty:  big.NewInt(0x200000),
-		Time:        new(big.Int).SetUint64(0),
+		Time:        0,
 		Coinbase:    common.Address{},
 		BlockNumber: new(big.Int).SetUint64(1),
 		ChainConfig: &params.ChainConfig{
@@ -333,12 +330,11 @@ func benchmarkNonModifyingCode(gas uint64, code []byte, name string, tracerCode 
 	cfg.State, _ = state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
 	cfg.GasLimit = gas
 	if len(tracerCode) > 0 {
-		tracer, err := tracers.New(tracerCode, new(tracers.Context))
+		tracer, err := tracers.DefaultDirectory.New(tracerCode, new(tracers.Context), nil)
 		if err != nil {
 			b.Fatal(err)
 		}
 		cfg.EVMConfig = vm.Config{
-			Debug:  true,
 			Tracer: tracer,
 		}
 	}
@@ -457,7 +453,7 @@ func BenchmarkSimpleLoop(b *testing.B) {
 		byte(vm.JUMP),
 	}
 
-	calllRevertingContractWithInput := []byte{
+	callRevertingContractWithInput := []byte{
 		byte(vm.JUMPDEST), //
 		// push args for the call
 		byte(vm.PUSH1), 0, // out size
@@ -485,7 +481,7 @@ func BenchmarkSimpleLoop(b *testing.B) {
 	benchmarkNonModifyingCode(100000000, loopingCode, "loop-100M", "", b)
 	benchmarkNonModifyingCode(100000000, callInexistant, "call-nonexist-100M", "", b)
 	benchmarkNonModifyingCode(100000000, callEOA, "call-EOA-100M", "", b)
-	benchmarkNonModifyingCode(100000000, calllRevertingContractWithInput, "call-reverting-100M", "", b)
+	benchmarkNonModifyingCode(100000000, callRevertingContractWithInput, "call-reverting-100M", "", b)
 
 	//benchmarkNonModifyingCode(10000000, staticCallIdentity, "staticcall-identity-10M", b)
 	//benchmarkNonModifyingCode(10000000, loopingCode, "loop-10M", b)
@@ -514,7 +510,6 @@ func TestEip2929Cases(t *testing.T) {
 			code, ops)
 		Execute(code, nil, &Config{
 			EVMConfig: vm.Config{
-				Debug:     true,
 				Tracer:    logger.NewMarkdownLogger(nil, os.Stdout),
 				ExtraEips: []int{2929},
 			},
@@ -668,7 +663,6 @@ func TestColdAccountAccessCost(t *testing.T) {
 		tracer := logger.NewStructLogger(nil)
 		Execute(tc.code, nil, &Config{
 			EVMConfig: vm.Config{
-				Debug:  true,
 				Tracer: tracer,
 			},
 		})
@@ -832,7 +826,7 @@ func TestRuntimeJSTracer(t *testing.T) {
 			statedb.SetCode(common.HexToAddress("0xee"), calleeCode)
 			statedb.SetCode(common.HexToAddress("0xff"), depressedCode)
 
-			tracer, err := tracers.New(jsTracer, new(tracers.Context))
+			tracer, err := tracers.DefaultDirectory.New(jsTracer, new(tracers.Context), nil)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -840,7 +834,6 @@ func TestRuntimeJSTracer(t *testing.T) {
 				GasLimit: 1000000,
 				State:    statedb,
 				EVMConfig: vm.Config{
-					Debug:  true,
 					Tracer: tracer,
 				}})
 			if err != nil {
@@ -868,14 +861,13 @@ func TestJSTracerCreateTx(t *testing.T) {
 	code := []byte{byte(vm.PUSH1), 0, byte(vm.PUSH1), 0, byte(vm.RETURN)}
 
 	statedb, _ := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
-	tracer, err := tracers.New(jsTracer, new(tracers.Context))
+	tracer, err := tracers.DefaultDirectory.New(jsTracer, new(tracers.Context), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	_, _, _, err = Create(code, &Config{
 		State: statedb,
 		EVMConfig: vm.Config{
-			Debug:  true,
 			Tracer: tracer,
 		}})
 	if err != nil {

@@ -94,7 +94,6 @@ type Config struct {
 	DiscoveryV5 bool `toml:",omitempty"`
 
 	// Name sets the node name of this server.
-	// Use common.MakeName to create a name that follows existing conventions.
 	Name string `toml:"-"`
 
 	// BootstrapNodes are used to establish connectivity
@@ -1057,7 +1056,7 @@ func (srv *Server) runPeer(p *Peer) {
 	// Broadcast peer drop to external subscribers. This needs to be
 	// after the send to delpeer so subscribers have a consistent view of
 	// the peer set (i.e. Server.Peers() doesn't include the peer when the
-	// event is received.
+	// event is received).
 	srv.peerFeed.Send(&PeerEvent{
 		Type:          PeerEventTypeDrop,
 		Peer:          p.ID(),
